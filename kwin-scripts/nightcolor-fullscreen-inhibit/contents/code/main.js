@@ -3,6 +3,11 @@ function isFullscreenLike(client) {
     if (client.desktopWindow || client.dock) return false;
     if (client.fullScreen) return true;
     if (!client.normalWindow) return false;
+    // A maximized window is not the same thing as fullscreen, even if some
+    // window rule strips its border - maximize and fullscreen are distinct
+    // KWin states, so explicitly exclude maximized windows here rather than
+    // relying on geometry/border alone to tell them apart.
+    if (client.maximizeMode !== 0) return false;
     // Borderless fullscreen: undecorated normal window covering the whole output
     var output = client.output;
     if (!output) return false;
