@@ -30,9 +30,13 @@ User-level systemd units wiring the above into your session:
 - `gloaming-brightness-schedule.timer` / `.service` — fires at the configured evening/morning times (edit the `OnCalendar=` lines), `Persistent=true` and `OnStartupSec=30` so a missed trigger (PC off, late login) still gets caught up correctly on next session start.
 - `gloaming-fullscreen-brightness-watch.service` — the long-running watcher daemon.
 
-### `plasmoid/` and `tray-app/`
+### `plasmoid/`
 
-Two tray widgets for manual override of Night Color temperature and brightness — a native Plasma 6 applet and a standalone Python tray app, kept in sync with each other. **Work in progress.**
+A native Plasma 6 tray applet for manual override: a brightness slider (instant, via `set-brightness-live.sh`) and a color-temperature slider that live-previews via `NightLight.preview()`/`stopPreview()` the same way KDE's own Night Color KCM slider does — dragging it changes color temperature immediately, and closing the widget reverts to whatever the schedule says. Brightness changes made this way persist (they're just the current brightness) rather than reverting.
+
+### `tray-app/`
+
+A standalone Python tray app offering the same controls outside of Plasma's widget system, kept in sync with the Plasmoid. **Work in progress.**
 
 ## Requirements
 

@@ -18,6 +18,10 @@ for unit in systemd/*.service systemd/*.timer; do
 done
 systemctl --user daemon-reload
 
+mkdir -p ~/.local/share/plasma/plasmoids
+rm -rf ~/.local/share/plasma/plasmoids/org.gloaming.trayapplet
+ln -sf "$REPO/plasmoid" ~/.local/share/plasma/plasmoids/org.gloaming.trayapplet
+
 chmod +x brightness/*.sh
 
 echo "Installed. Edit ~/.config/gloaming/gloaming.conf to set your schedule,"
@@ -25,3 +29,5 @@ echo "brightness levels, and per-display calibration."
 echo "Then enable the timers/services you want, e.g.:"
 echo "  systemctl --user enable --now gloaming-brightness-schedule.timer"
 echo "  systemctl --user enable --now gloaming-fullscreen-brightness-watch.service"
+echo "The Gloaming tray widget is installed - add it via your panel's"
+echo "'Add Widgets' dialog, or the system tray's '+' configure button."
