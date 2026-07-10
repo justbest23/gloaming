@@ -1,0 +1,9 @@
+{
+    "KPackageStructure": "KWin/Script",
+    "KPlugin": {
+        "Id": "nightcolor-fullscreen-inhibit",
+        "Name": "Night Color Fullscreen Inhibit"
+    },
+    "X-Plasma-API": "javascript",
+    "X-Plasma-MainScript": "code/main.js"
+}

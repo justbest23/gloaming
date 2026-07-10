@@ -1,0 +1,15 @@
+[Unit]
+Description=Gloaming: trigger brightness schedule check
+
+[Timer]
+# Checks every 5 minutes rather than at fixed clock times: the actual
+# evening/morning hours live in ~/.config/gloaming/gloaming.conf, so this
+# just needs to wake up often enough to notice when the config's schedule
+# boundary has passed. fade-brightness.sh no-ops if already at target, so
+# frequent checks are cheap.
+OnStartupSec=30
+OnUnitActiveSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

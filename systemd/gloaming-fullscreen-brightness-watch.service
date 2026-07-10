@@ -1,0 +1,10 @@
+[Unit]
+Description=Gloaming: restore full brightness while a fullscreen window is active
+
+[Service]
+Type=simple
+ExecStart=%h/Projects/gloaming/brightness/fullscreen-brightness-watch.sh
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,20 @@
+# Gloaming shared config. Copy to ~/.config/gloaming/gloaming.conf and edit -
+# that copy is what gets read; this file is just the shipped defaults/reference.
+# All values here can be changed live: the schedule checker re-reads this file
+# every time it runs (every few minutes), so edits apply within minutes rather
+# than needing a service restart.
+
+EVENING_HOUR=19
+MORNING_HOUR=7
+DIMMED_PCT=30
+NORMAL_PCT=100
+BUSES="5 7"
+
+# How long an on-time fade takes, vs how long a catch-up snap takes when
+# applying a change (schedule edit, PC was off, etc.) well after the fact.
+FADE_DURATION=1200
+SNAP_DURATION=10
+
+# If we're within this many seconds of a schedule boundary, treat it as an
+# on-time trigger (slow fade); otherwise it's a catch-up (fast snap).
+ONTIME_WINDOW=300
