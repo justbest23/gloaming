@@ -88,9 +88,7 @@ def main() -> None:
 
     popup = GloamingPopup()
 
-    def toggle_popup(reason: QSystemTrayIcon.ActivationReason) -> None:
-        if reason != QSystemTrayIcon.ActivationReason.Trigger:
-            return
+    def toggle_popup() -> None:
         if popup.isVisible():
             popup.hide()
             return
@@ -98,9 +96,21 @@ def main() -> None:
         popup.move(pos.x(), pos.y() - popup.sizeHint().height())
         popup.show()
 
-    tray.activated.connect(toggle_popup)
+    # Left-click (ActivationReason.Trigger) is the normal way to open this,
+    # but QSystemTrayIcon.activated doesn't reliably fire through KDE's
+    # Wayland StatusNotifierItem backend - a known Qt/Wayland gap, not
+    # specific to this app. The "Open Gloaming" menu action is the
+    # guaranteed-working fallback via right-click; left-click still wired up
+    # in case it does fire on a given setup.
+    def on_activated(reason: QSystemTrayIcon.ActivationReason) -> None:
+        if reason == QSystemTrayIcon.ActivationReason.Trigger:
+            toggle_popup()
+
+    tray.activated.connect(on_activated)
 
     menu = QMenu()
+    menu.addAction("Open Gloaming").triggered.connect(toggle_popup)
+    menu.addSeparator()
     menu.addAction("Quit").triggered.connect(app.quit)
     tray.setContextMenu(menu)
 
