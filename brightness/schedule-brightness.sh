@@ -1,6 +1,9 @@
 #!/bin/bash
 # schedule-brightness.sh
-# Determines the brightness target from the current time of day (reading
+# If a manual day/night override is set (see set-mode.sh), applies that and
+# stops - this is what makes the tray widgets' mode switch actually stick
+# instead of getting overwritten by the next periodic timer tick. Otherwise
+# determines the brightness target from the current time of day (reading
 # gloaming.conf fresh each run, so schedule edits apply on the next periodic
 # check without restarting anything) and fades to it. If we're firing near
 # the actual scheduled boundary we do a slow fade; if we're catching up long
@@ -9,6 +12,13 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 source lib-config.sh
+
+mode=$(get_mode)
+if [[ "$mode" == "day" ]]; then
+    exec ./fade-brightness.sh "$NORMAL_PCT" "$SNAP_DURATION"
+elif [[ "$mode" == "night" ]]; then
+    exec ./fade-brightness.sh "$DIMMED_PCT" "$SNAP_DURATION"
+fi
 
 now=$(date +%s)
 today=$(date +%Y-%m-%d)

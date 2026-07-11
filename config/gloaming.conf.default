@@ -19,8 +19,16 @@ DISPLAYS=""
 
 # How long an on-time fade takes, vs how long a catch-up snap takes when
 # applying a change (schedule edit, PC was off, etc.) well after the fact.
+# Also settable from the tray widgets' Fade dropdown/custom-minutes field.
 FADE_DURATION=1200
 SNAP_DURATION=10
+
+# FADE_STYLE=smooth interpolates in 30 even micro-steps across FADE_DURATION
+# (looks continuous). FADE_STYLE=stepped instead jumps in fewer, more
+# noticeable increments spaced FADE_STEP_MINUTES apart - however many of
+# those intervals fit inside FADE_DURATION (capped at 500 steps).
+FADE_STYLE=smooth
+FADE_STEP_MINUTES=5
 
 # If we're within this many seconds of a schedule boundary, treat it as an
 # on-time trigger (slow fade); otherwise it's a catch-up (fast snap).

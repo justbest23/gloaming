@@ -32,13 +32,20 @@ User-level systemd units wiring the above into your session:
 
 ### `plasmoid/`
 
-A native Plasma 6 tray applet for manual override: a brightness slider (instant, via `set-brightness-live.sh`) and a color-temperature slider that live-previews via `NightLight.preview()`/`stopPreview()` the same way KDE's own Night Color KCM slider does — dragging it changes color temperature immediately, and closing the widget reverts to whatever the schedule says. Brightness changes made this way persist (they're just the current brightness) rather than reverting.
+A native Plasma 6 tray applet for manual override:
+
+- **Brightness** / **Color temperature** sliders — brightness applies instantly and stays put (via `set-brightness-live.sh`); color temperature live-previews via `NightLight.preview()`/`stopPreview()` the same way KDE's own Night Color KCM slider does, and reverts to the schedule when you close the popup.
+- **Mode** (Day / Night / Schedule) — Day and Night pin brightness to `NORMAL_PCT`/`DIMMED_PCT` regardless of time of day, until you switch back to Schedule. This isn't just a shortcut: without a mode set, the periodic schedule timer re-applies the time-of-day target every few minutes, so a plain slider drag alone gets silently overwritten within minutes. Pinning a mode is what makes an override actually stick.
+- **Schedule** fields — dim/normal percentages and evening/morning hours are editable inline (writes to `gloaming.conf` via `set-config.sh`).
+- **Fade** dropdown — named presets (Instant, Smooth 20 min/1 hour, Stepped every 5/15 min) or a custom minutes field (decimals allowed, up to 12h). Smooth interpolates in 30 even steps; Stepped jumps in fewer, more noticeable increments spaced a chosen number of minutes apart — see `fade-brightness.sh`'s `FADE_STYLE`.
+- **Calibrate displays…** — opens a separate window listing every detected monitor with Floor/Ceiling sliders; dragging one live-previews on that single display (via `preview-raw.sh`, bypassing calibration so you're seeing the raw effect) and releasing commits `FLOOR_<display>`/`CEIL_<display>` to `gloaming.conf`. Split out from the main popup since it's a one-time-per-monitor setup task, not a quick toggle.
+- **Edit configuration file…** — for anything not exposed above (fade catch-up window, display allowlist, etc).
 
 Note: this does **not** dock inside the System Tray's grouped icons. KDE's system tray only auto-shows its own hardcoded set of "known" items (volume, battery, network, etc.) — a third-party `Plasma/Applet` package gets silently dropped from that list even with `X-Plasma-NotificationArea: true` set and `Plasmoid.status` forced to `ActiveStatus`. Add it via "Add Widgets" and place it directly on a panel instead. Recommended for now — see the tray-app note below.
 
 ### `tray-app/`
 
-A standalone Python (PyQt6) tray app offering the same two controls (brightness slider, live-preview temperature slider) outside of Plasma's widget system — same interaction model as the Plasmoid, kept in sync with it. Because it registers as a real `StatusNotifierItem` (the same protocol Discord, Bluetooth, etc. use), it docks correctly inside the System Tray's grouped icons, unlike the Plasmoid. However left-click to open it doesn't reliably work on Plasma Wayland — use right-click → "Open Gloaming" instead (see Known limitations). Pick one or the other; running both gives you two icons.
+A standalone Python (PyQt6) tray app with the same controls as the Plasmoid (brightness/temperature sliders, Day/Night/Schedule mode, editable schedule and fade fields, calibration dialog, config-file link) outside of Plasma's widget system — kept in sync with it. Because it registers as a real `StatusNotifierItem` (the same protocol Discord, Bluetooth, etc. use), it docks correctly inside the System Tray's grouped icons, unlike the Plasmoid. However left-click to open it doesn't reliably work on Plasma Wayland — use right-click → "Open Gloaming" instead (see Known limitations). Pick one or the other; running both gives you two icons.
 
 ## Requirements
 

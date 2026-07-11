@@ -6,6 +6,8 @@ DIMMED_PCT=30
 NORMAL_PCT=100
 DISPLAYS=""
 FADE_DURATION=1200
+FADE_STYLE=smooth
+FADE_STEP_MINUTES=5
 SNAP_DURATION=10
 ONTIME_WINDOW=300
 
@@ -14,6 +16,17 @@ if [[ -f "$CONFIG_FILE" ]]; then
     # shellcheck disable=SC1090
     source <(grep -E '^[A-Z_][A-Za-z0-9_]*=' "$CONFIG_FILE")
 fi
+
+# Runtime override state (day/night/schedule), separate from gloaming.conf
+# since it's set by the tray widgets rather than hand-edited - see
+# set-mode.sh. Defaults to "schedule" (pure time-of-day behavior) if unset.
+STATE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/gloaming/state"
+get_mode() {
+    local mode
+    mode=$(grep '^MODE=' "$STATE_FILE" 2>/dev/null | tail -1)
+    mode=${mode#MODE=}
+    echo "${mode:-schedule}"
+}
 
 SB_DEST=org.kde.Solid.PowerManagement
 SB_IFACE=org.kde.ScreenBrightness.Display
