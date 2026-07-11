@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Standalone tray app for manual Night Color / brightness override.
 
-Mirrors the Plasmoid's interaction model: brightness changes apply live and
-persist, color temperature previews live via KWin's NightLight.preview() and
-reverts to the schedule when the popup closes. Also mirrors the Plasmoid's
-Day/Night/Schedule mode switch and editable schedule fields.
+Mirrors the Plasmoid's interaction model. The tray popup itself is minimal
+(On/Off/Schedule mode switch); everything else lives in the Settings dialog
+reachable via the popup's "Settings…" button or the tray icon's right-click
+menu, per the user's request to keep the quick-click popup uncluttered.
 """
 import os
 import re
@@ -46,7 +46,7 @@ STATE_FILE = XDG_CONFIG_HOME / "duskwatch" / "state"
 
 TEMP_MIN, TEMP_MAX, TEMP_DEFAULT = 2300, 6500, 6300
 
-# (label, duration_seconds, style, step_minutes) - mirrors plasmoid/contents/ui/main.qml's
+# (label, duration_seconds, style, step_minutes) - mirrors plasmoid/contents/ui/SettingsDialog.qml's
 # fadePresets. duration=None marks the "Custom" entry, always last.
 FADE_PRESETS = [
     ("Instant", 0, "smooth", 5),
@@ -133,10 +133,75 @@ def read_mode() -> str:
 
 
 class DuskwatchPopup(QWidget):
-    def __init__(self) -> None:
+    """The quick-click popup: just the mode switch and a way into Settings."""
+
+    def __init__(self, settings_dialog: "SettingsDialog") -> None:
         super().__init__()
         self.setWindowFlag(Qt.WindowType.Popup)
         self.setWindowTitle("Duskwatch")
+        self._settings_dialog = settings_dialog
+
+        layout = QVBoxLayout(self)
+
+        mode_row = QHBoxLayout()
+        self.mode_buttons: dict[str, QPushButton] = {}
+        self.mode_group = QButtonGroup(self)
+        for mode, text in (("day", "On"), ("night", "Off"), ("schedule", "Schedule")):
+            btn = QPushButton(text)
+            btn.setCheckable(True)
+            btn.clicked.connect(lambda _checked, m=mode: self._on_mode_clicked(m))
+            self.mode_group.addButton(btn)
+            self.mode_buttons[mode] = btn
+            mode_row.addWidget(btn)
+        layout.addLayout(mode_row)
+
+        self.mode_note = QLabel()
+        self.mode_note.setWordWrap(True)
+        layout.addWidget(self.mode_note)
+
+        layout.addWidget(_separator())
+
+        settings_row = QHBoxLayout()
+        settings_btn = QPushButton("Settings…")
+        settings_btn.setFlat(True)
+        settings_btn.clicked.connect(self._open_settings)
+        settings_row.addWidget(settings_btn)
+        settings_row.addStretch()
+        layout.addLayout(settings_row)
+
+    def _open_settings(self) -> None:
+        self.hide()
+        open_settings_dialog(self._settings_dialog)
+
+    def _on_mode_clicked(self, mode: str) -> None:
+        self._set_mode_ui(mode)
+        set_mode(mode)
+
+    def _set_mode_ui(self, mode: str) -> None:
+        self.mode_buttons.get(mode, self.mode_buttons["schedule"]).setChecked(True)
+        if mode == "schedule":
+            self.mode_note.setText("Following the schedule.")
+        elif mode == "day":
+            self.mode_note.setText("On - full brightness until you switch back to Schedule.")
+        else:
+            self.mode_note.setText("Off - dimmed until you switch back to Schedule.")
+
+    def showEvent(self, event) -> None:
+        self._set_mode_ui(read_mode())
+        super().showEvent(event)
+
+
+class SettingsDialog(QDialog):
+    """Everything beyond the quick On/Off/Schedule switch: live brightness/
+    color sliders, editable schedule and fade settings, calibration, and the
+    raw config file - opened from the popup's Settings button or the tray
+    icon's right-click menu.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setWindowTitle("Duskwatch Settings")
+        self.resize(420, 520)
         self._loading_schedule = False
 
         layout = QVBoxLayout(self)
@@ -163,23 +228,6 @@ class DuskwatchPopup(QWidget):
         layout.addWidget(note)
 
         layout.addWidget(_separator())
-
-        layout.addWidget(_bold(QLabel("Mode")))
-        mode_row = QHBoxLayout()
-        self.mode_buttons: dict[str, QPushButton] = {}
-        self.mode_group = QButtonGroup(self)
-        for mode in ("day", "night", "schedule"):
-            btn = QPushButton(mode.capitalize())
-            btn.setCheckable(True)
-            btn.clicked.connect(lambda _checked, m=mode: self._on_mode_clicked(m))
-            self.mode_group.addButton(btn)
-            self.mode_buttons[mode] = btn
-            mode_row.addWidget(btn)
-        layout.addLayout(mode_row)
-
-        self.mode_note = QLabel()
-        self.mode_note.setWordWrap(True)
-        layout.addWidget(self.mode_note)
 
         layout.addWidget(_bold(QLabel("Schedule")))
         grid = QGridLayout()
@@ -279,18 +327,6 @@ class DuskwatchPopup(QWidget):
         self.custom_fade_spin.setValue(duration / 60)
         self._set_custom_row_visible(True)
 
-    def _on_mode_clicked(self, mode: str) -> None:
-        self._set_mode_ui(mode)
-        set_mode(mode)
-
-    def _set_mode_ui(self, mode: str) -> None:
-        self.mode_buttons.get(mode, self.mode_buttons["schedule"]).setChecked(True)
-        self.mode_note.setText(
-            "Follows the schedule below."
-            if mode == "schedule"
-            else f"Pinned to {mode} brightness until you switch back to Schedule."
-        )
-
     def _on_schedule_changed(self, key: str, value: int) -> None:
         if not self._loading_schedule:
             set_config_value(key, value)
@@ -307,15 +343,10 @@ class DuskwatchPopup(QWidget):
         if "MORNING_HOUR" in config:
             self.morning_spin.setValue(int(config["MORNING_HOUR"]))
         self._loading_schedule = False
-        self._set_mode_ui(read_mode())
         self._sync_fade_selection(
             int(config.get("FADE_DURATION", 1200)),
             config.get("FADE_STYLE", "smooth"),
         )
-
-    def showEvent(self, event) -> None:
-        self.reload_from_disk()
-        super().showEvent(event)
 
     def hideEvent(self, event) -> None:
         stop_preview()
@@ -323,8 +354,8 @@ class DuskwatchPopup(QWidget):
 
 
 class CalibrationDialog(QDialog):
-    """Per-display Floor/Ceiling calibration, kept separate from the main
-    popup since it's a one-time-per-monitor setup task, not a quick toggle.
+    """Per-display Floor/Ceiling calibration, kept separate from Settings
+    too since it's a one-time-per-monitor setup task, not a quick toggle.
     Dragging a slider previews live on that one display via preview-raw.sh;
     releasing it commits FLOOR_/CEIL_<display> to duskwatch.conf.
     """
@@ -410,6 +441,13 @@ def _separator() -> QWidget:
     return line
 
 
+def open_settings_dialog(dialog: SettingsDialog) -> None:
+    dialog.reload_from_disk()
+    dialog.show()
+    dialog.raise_()
+    dialog.activateWindow()
+
+
 def main() -> None:
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
@@ -417,7 +455,8 @@ def main() -> None:
     tray = QSystemTrayIcon(QIcon.fromTheme("weather-clear-night"))
     tray.setToolTip("Duskwatch")
 
-    popup = DuskwatchPopup()
+    settings_dialog = SettingsDialog()
+    popup = DuskwatchPopup(settings_dialog)
 
     def toggle_popup() -> None:
         if popup.isVisible():
@@ -430,9 +469,8 @@ def main() -> None:
     # Left-click (ActivationReason.Trigger) is the normal way to open this,
     # but QSystemTrayIcon.activated doesn't reliably fire through KDE's
     # Wayland StatusNotifierItem backend - a known Qt/Wayland gap, not
-    # specific to this app. The "Open Duskwatch" menu action is the
-    # guaranteed-working fallback via right-click; left-click still wired up
-    # in case it does fire on a given setup.
+    # specific to this app. The right-click menu is the guaranteed-working
+    # fallback; left-click still wired up in case it fires on a given setup.
     def on_activated(reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
             toggle_popup()
@@ -441,6 +479,7 @@ def main() -> None:
 
     menu = QMenu()
     menu.addAction("Open Duskwatch").triggered.connect(toggle_popup)
+    menu.addAction("Settings…").triggered.connect(lambda: open_settings_dialog(settings_dialog))
     menu.addSeparator()
     menu.addAction("Quit").triggered.connect(app.quit)
     tray.setContextMenu(menu)
