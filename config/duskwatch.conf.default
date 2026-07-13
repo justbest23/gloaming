@@ -59,6 +59,17 @@ ONTIME_WINDOW=300
 # temperature. Also settable from the tray widgets' Settings dialog.
 FULLSCREEN_BRIGHTNESS_SCOPE=active-screen
 
+# Which outputs' fullscreen windows pause Night Color. The pause itself is
+# always all-screens (KWin has no per-output color temperature) - this only
+# chooses which screens are allowed to TRIGGER it. "all" (default): a
+# fullscreen window anywhere triggers it. Or a comma-separated list of
+# connector names (run brightness/list-displays.sh to see them), e.g.
+# NIGHTCOLOR_PAUSE_OUTPUTS=HDMI-A-1 so only the main gaming monitor
+# triggers the pause and a fullscreen video on a side monitor no longer
+# un-warms the whole desktop. The per-screen brightness boost above is
+# independent and unaffected by this.
+NIGHTCOLOR_PAUSE_OUTPUTS=all
+
 # Per-display calibration: monitors vary a lot in perceived brightness at the
 # same raw percentage. A schedule target of e.g. 30% is mapped through each
 # display's own floor/ceiling range (default 0/100) before being applied, so

@@ -419,7 +419,7 @@ Kirigami.ApplicationWindow {
                 }
             }
             PlasmaComponents3.Label {
-                text: i18n("Unchecked, a fullscreen game or video brings every display up to full brightness. Night Color pauses for all screens either way.")
+                text: i18n("Unchecked, a fullscreen game or video brings every display up to full brightness. The Night Color pause is all-screens when it triggers; NIGHTCOLOR_PAUSE_OUTPUTS in the config file chooses which screens' fullscreen windows trigger it.")
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
                 opacity: 0.6

@@ -309,7 +309,9 @@ class SettingsDialog(QDialog):
         )
         self.fullscreen_scope_check.setToolTip(
             "Unchecked, a fullscreen game or video brings every display up to full\n"
-            "brightness. Night Color pauses for all screens either way."
+            "brightness. The Night Color pause is all-screens when it triggers;\n"
+            "NIGHTCOLOR_PAUSE_OUTPUTS in the config file chooses which screens'\n"
+            "fullscreen windows trigger it."
         )
         # clicked (not toggled) so reload_from_disk's setChecked can't write
         # the config back - it only fires on real user interaction.

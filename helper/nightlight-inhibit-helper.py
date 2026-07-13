@@ -13,12 +13,18 @@
 # helper ever dies while inhibiting, KWin's service watcher releases the
 # inhibit automatically instead of leaving it stuck.
 
+import os
+import re
+
 import gi
 gi.require_version("Gio", "2.0")
 from gi.repository import Gio, GLib
 
 BUS_NAME = "org.duskwatch.NightLightInhibit"
 OBJECT_PATH = "/org/duskwatch/NightLightInhibit"
+CONFIG_FILE = os.path.join(
+    os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")),
+    "duskwatch", "duskwatch.conf")
 
 INTROSPECTION_XML = """
 <node>
@@ -62,6 +68,39 @@ def set_inhibited(inhibited):
             cookie = None
 
 
+def pause_outputs():
+    """NIGHTCOLOR_PAUSE_OUTPUTS from duskwatch.conf: which outputs' fullscreen
+    windows pause Night Color. Returns None for "all screens trigger it"
+    (unset, empty, or the literal "all" - the default), else a set of
+    connector names. Re-read on every fullscreen change so config edits
+    apply without restarting this helper."""
+    try:
+        with open(CONFIG_FILE) as f:
+            text = f.read()
+    except OSError:
+        return None
+    matches = re.findall(r"^NIGHTCOLOR_PAUSE_OUTPUTS=(.*)$", text, re.MULTILINE)
+    if not matches:
+        return None
+    val = matches[-1].strip().strip('"')  # last assignment wins, like the shell loader
+    if not val or val == "all":
+        return None
+    return {c for c in re.split(r"[,\s]+", val) if c}
+
+
+def should_inhibit(outputs):
+    if not outputs:
+        return False
+    allowed = pause_outputs()
+    # "*" is the legacy SetInhibited channel: no output info, so it always
+    # triggers. The pause itself is compositor-global either way - KWin has
+    # no per-output color temperature; this only picks which screens'
+    # fullscreen windows are allowed to trigger it.
+    if allowed is None or outputs == "*":
+        return True
+    return any(o in allowed for o in outputs.split(","))
+
+
 def set_fullscreen_outputs(outputs):
     global fullscreen_outputs
     if outputs == fullscreen_outputs:
@@ -77,7 +116,7 @@ def set_fullscreen_outputs(outputs):
             {"FullscreenOutputs": GLib.Variant("s", fullscreen_outputs)},
             [],
         )))
-    set_inhibited(bool(fullscreen_outputs))
+    set_inhibited(should_inhibit(fullscreen_outputs))
 
 
 def handle_method_call(connection, sender, path, interface, method, params, invocation):

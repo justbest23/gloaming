@@ -14,7 +14,7 @@ KEY=$1
 VALUE=$2
 
 [[ "$KEY" =~ ^[A-Z_][A-Za-z0-9_]*$ ]] || { echo "invalid key" >&2; exit 1; }
-[[ "$VALUE" =~ ^[A-Za-z0-9_.-]+$ ]] || { echo "invalid value" >&2; exit 1; }
+[[ "$VALUE" =~ ^[A-Za-z0-9_,.-]+$ ]] || { echo "invalid value" >&2; exit 1; }
 
 mkdir -p "$(dirname "$CONFIG_FILE")"
 touch "$CONFIG_FILE"
